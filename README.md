@@ -1,10 +1,10 @@
 What is the project about?
 
-This project is about using a digital expense tracker where you can add, view, delete, edit, and manage expenses.
+This project is about using a digital expense tracker where you can add, view, delete, edit, and manage expenses
 
 How to use it / set it up?
 
-Run it in a Python script.
+Run it in a Python script
 
 What are the features of the project?
 
