@@ -1,508 +1,281 @@
-# Important modules
-from datetime import date, datetime
-from pathlib import Path
-from statistics import mean
 import json
-# Unimportant module
+from statistics import mean
+from datetime import date
+from math import isfinite
 from time import sleep
-# Creating the class that is responsible for the main critical points about the expense tracker(adding, viewing, deleting, etc.)
+# The class that is responsible for the expense factors(adding, viewing, deleting, etc.)
 class ExpenseTracker:
-    # Initializing each variable thats gonna be used in this class
+    # Initialized variables that will be used in this class
     def __init__(self):
-        self.expense = None
-        self.amount = 0
-        self.price = 0.0
-        self.category = None
-        self.date = None
-        self.expense_info = {}
         self.expenses = []
-        self.budget = 0.0
-        # This variable is for the ExpenseTrackerCLI class
-        self.option = None
-    # Creating the function that adds a new expense into the expense tracker
-    def add_new_expense(self):
-        # Asking for the expense while checking if its valid or not
-        while True:
-            self.expense = input("Enter the expense that you want to add into the expense tracker ->: ").capitalize()
-            if not self.expense:
-                print("Enter a valid expense")
-            else:
-                break
-        # Asking for the category while checking if its valid or not
-        while True:
-            self.category = input(f"Enter the category of {self.expense}(Food, Transportation, etc.) ->: ").capitalize()
-            if not self.category:
-                print("Enter a valid category")
-            else:
-                break
-        # Asking for the amount while checking if its valid or not
-        while True:
-            try:
-                self.amount = int(input(f"Enter the amount of {self.expense}s you bought ->: "))
-                if self.amount <= 0:
-                    print("Enter a valid amount that is bigger than 0")
-                else:
-                    break
-            except ValueError:
-                print("Invalid amount")
-        # Asking for the singular price while checking if its valid or not
-        while True:
-            try:
-                self.price = float(input(f"Enter the price of one {self.expense} ->: "))
-                if self.price <= 0:
-                    print("Enter a valid price that is bigger than 0")
-                else:
-                    break
-            except ValueError:
-                print("Invalid price")
-        # Asking for the date while checking if its valid or not
-        while True:
-            try:
-                self.date = date.fromisoformat(input(f"Enter the date of when {self.amount} {self.expense}(s) were bought in this format(YYYY-MM-DD) ->: ").strip())
-                # Checking if the date is in the future or not
-                if datetime.now().date() < self.date:
-                    print(f"Enter a date that isn't in the future(Todays date: {datetime.now().date()})")
-                else:
-                    break
-            except ValueError:
-                print("Invalid date parameters therefore we will start over")
-        self.expense_info = {"Expense": self.expense, "Amount": self.amount, "Price": self.amount*self.price, "Category": self.category, "Date": self.date}
-        # Check if the expense information exists
-        if any(self.expense == expense_info["Expense"] and self.category == expense_info["Category"] and self.date == expense_info["Date"] for expense_info in self.expenses):
-            print("\nExpense information already found(Edit the amount or price)")
-        else:
-            self.expenses.append(self.expense_info)
-            print(f"\n{self.amount} {self.expense}(s) has been added into the expense tracker")
-    # Creating the function that displays all the expenses
-    def display_all_expenses(self):
-        print("\nExpenses: ")
-        # Check if expense tracker data exists
+    # The function that adds a new expense into the expenses list
+    def add_expense(self, function):
+        try:
+            expense = function("expense that you would like to add")
+            category = function(f"category of {expense}")
+            amount = int(function(f"amount of {expense}(s) you got"))
+            if amount <= 0:
+                print("\nEnter a positive amount.")
+                return
+            price = float(function(f"price of one {expense}"))
+            # Checks if the price is a valid value that can be parsed in a JSON structure
+            if not isfinite(price) or 0 >= price:
+                print("\nEnter a valid positive price that isn't NaN or infinite.")
+                return  
+            expense_date = date.fromisoformat(function(f"date of when you bought {expense} in this format: (YYYY-MM-DD)"))
+            # Checks if the date input has not bypassed the current date
+            if expense_date > date.today():
+                print(f"\nEnter a date that isn't after the date {date.today()}.")
+                return
+            print(f"\n{amount} {expense}(s) has been added.(ID: {len(self.expenses)+1})")
+            self.expenses.append({"ID": len(self.expenses)+1, "Expense": expense, "Amount": amount, "Price": amount*price, "Category": category, "Date": expense_date})
+        except (ValueError, OverflowError) as e:
+            print(f"\n{e}")
+    # The function that displays the expenses
+    def display_expenses(self, parameter, parameter_value):
+        # Checks if data even exists in the expenses list
         if not self.expenses:
-            print("\nNo data found to proceed")
-        else:
-            # Looping through each expense information
+            print("\nNo data found to proceed.")
+            return
+        if parameter_value == True:
+            print("\nExpenses: ")
+            print("\nID | Expense | Amount | Price | Category | Date")
             for expense_info in self.expenses:
-                print() # <- this is for clearer structure to seperate each expense information one by one
-                for expense_info_key, expense_info_value in expense_info.items():
-                    if expense_info_key == "Price":
-                        print(f"{expense_info_key} -> {expense_info_value:.2f}")
-                    else:
-                        print(f"{expense_info_key} -> {expense_info_value}")
-    # Creating the function that deletes an expense
-    def delete_expense(self):
-        # Asking for the expense while checking if its valid or not
-        while True:
-            self.expense = input("Enter the expense that you would like to delete ->: ").capitalize()
-            if not self.expense:
-                print("Enter a valid expense")
-            else:
-                break
-        # Asking for the category while checking if its valid or not
-        while True:
-            self.category = input(f"Enter the category of {self.expense}(Food, Transportation, etc.) ->: ").capitalize()
-            if not self.category:
-                print("Enter a valid category")
-            else:
-                break
-        # Asking for the date while checking if its valid or not
-        while True:
-            try:
-                self.date = date.fromisoformat(input(f"Enter the date of when {self.expense} was bought in this format(YYYY-MM-DD) ->: ").strip())
-                # Checking if the date is in the future or not
-                if datetime.now().date() < self.date:
-                    print(f"Enter a date that isn't in the future(Todays date: {datetime.now().date()})")
-                else:
-                    break
-            except ValueError:
-                print("Invalid date parameters therefore we will start over")
-        # Check if the expense information exists
-        if not any(self.expense == expense_info["Expense"] and self.category == expense_info["Category"] and self.date == expense_info["Date"] for expense_info in self.expenses):
-            print("\nNo such expense information found")
-        else:
-            # Looping through each expense information
-            for expense_info in self.expenses:
-                if expense_info["Expense"] == self.expense and expense_info["Category"] == self.category and expense_info["Date"] == self.date:
-                    self.expenses.remove(expense_info)
-                    print(f"\n{expense_info['Amount']} {self.expense} has been deleted alongisde its information")
-                    break
-                else:
-                    continue
-    # Creating the function that clears all expenses
-    def clear_all_expenses(self):
-        # Check if expense tracker data exists
+                print(f"{expense_info['ID']})   {expense_info['Expense']}     {expense_info['Amount']}      {expense_info['Price']:.2f}    {expense_info['Category']}   {expense_info['Date']}")
+            return
+        print(f"\nExpenses({parameter} -> {parameter_value}): ")
+        print("\nID | Expense | Amount | Price | Category | Date")
+        for expense_info in self.expenses:
+            if expense_info[parameter] == parameter_value:
+                print(f"{expense_info['ID']})   {expense_info['Expense']}     {expense_info['Amount']}      {expense_info['Price']:.2f}    {expense_info['Category']}   {expense_info['Date']}")
+    # The function that deletes an expense by getting the ID input
+    def delete_expense(self, function):
         if not self.expenses:
-            print("\nNo data found to proceed")
-        else:
+            print("\nNo data found to proceed.")
+            return
+        self.display_expenses(None, True)
+        expense_id = function(self.expenses)
+        for expense_info in self.expenses:
+            if expense_info["ID"] == expense_id:
+                print(f"\nThe expense with the ID {expense_info['ID']} has been deleted from the expenses.")
+                self.expenses.remove(expense_info)
+                self.reload_ids()
+                break
+    # The function that clears the expenses
+    def clear_expenses(self, function):
+        if not self.expenses:
+            print("\nNo data found to proceed.")
+            return
+        if function() == 'y':
+            print("\nThe expenses has been cleared.")
             self.expenses.clear()
-            print("\nThe expense tracker has been cleared")
-    # Creating the function that edits an expenses attribute
-    def edit_expense_attribute(self):
-        # Asking for the expense while checking if its valid or not
-        while True:
-            self.expense = input("Enter the expense whose attribute you would like to edit ->: ").capitalize()
-            if not self.expense:
-                print("Enter a valid expense")
-            else:
+            return
+        print("\nOk we will proceed as usual.")
+    # The function that can edit an expense's specific attribute such as it's name, price, category, etc.
+    def edit_expense(self, function, function2, function3, text: str):
+        categories = {
+            "Expense": str,
+            "Amount": int, 
+            "Price": float,
+            "Date": date.fromisoformat,
+            "Category": str
+        }
+        if not self.expenses:
+            print("\nNo data found to proceed.")
+            return
+        self.display_expenses(None, True)
+        expense_id = function(self.expenses)
+        edit_option = function2()
+        for expense_info in self.expenses:
+            if expense_info["ID"] != expense_id:
+                continue
+            initial_value, final_value = expense_info[edit_option], categories[edit_option](function3(text))
+            if type(final_value) is int and final_value <= 0:
+                print("\nEnter a valid positive amount.")
                 break
-        # Asking for the category while checking if its valid or not
-        while True:
-            self.category = input(f"Enter the category of {self.expense} ->: ").capitalize()
-            if not self.category:
-                print("Enter a valid category")
-            else:
+            if type(final_value) is float and (final_value <= 0 or not isfinite(final_value)):
+                print("\nEnter a valid positive price that isn't NaN or infinite.")
                 break
-        # Asking for the date while checking if its valid or not
+            if initial_value == final_value:
+                print("\nThe value is already the same.")
+                break
+            if type(final_value) is date and date.today() < final_value:
+                print(f"\nEnter a date that isn't after {date.today()}")
+                break
+            if type(final_value) is int:
+                expense_info["Price"] /= initial_value
+                expense_info["Price"] *= final_value
+                expense_info["Amount"] = final_value
+            else:
+                expense_info[edit_option] = final_value
+            print(f"\nThe {edit_option} of the expense with the ID {expense_id} has been edited.")
+            break
+    # The function that searches an expense according to a name
+    def search_expenses(self, function):
+        if not self.expenses:
+            print("\nNo data found to proceed.")
+            return
+        expense = function("expense name")
+        if all(expense != expense_info["Expense"] for expense_info in self.expenses):
+            print("\nNo such expense found.")
+            return
+        self.display_expenses("Expense", expense)
+    # The function that displays the statistics such as the most expensive, the cheapest, the average and the total cost
+    def display_statistics(self):
+        print("\nStatistics: ")
+        # Checks if data even exists in the expenses list
+        if not self.expenses:
+            print("\nNo data found.")
+            return
+        print(f"""
+        \nMost expensive expense: {max(expense_info['Price'] for expense_info in self.expenses):.2f}
+Cheapest expense: {min(expense_info['Price'] for expense_info in self.expenses):.2f}
+Total expense cost: {sum(expense_info["Price"] for expense_info in self.expenses):.2f}
+Average expense cost: {mean(expense_info['Price'] for expense_info in self.expenses):.2f}
+        """)
+    # The function that reloads the ID's
+    def reload_ids(self):
+        for index, expense_info in enumerate(self.expenses, start=1):
+            expense_info["ID"] = index
+# The class that is responsible for the CLI commands which are mostly user inputs
+class ExpenseTrackerCLI:
+    # Initialized classes that will be used in this class
+    def __init__(self):
+        self.expense_tracker = ExpenseTracker()
+        self.data = ExpenseTrackerJSON()
+    # The function that asks for an input such as the expenses name, price, category, etc.
+    def ask_input(self, text: str) -> str:
+        while True:
+            user_input = input(f"Enter the {text} ->: ").capitalize().strip()
+            if user_input:
+                return user_input
+            print("Enter a valid input.")
+    # The function that asks the user for an ID input
+    def id_input(self, storage: list) -> int | None:
         while True:
             try:
-                self.date = date.fromisoformat(input(f"Enter the date of when {self.expense} was bought in this format(YYYY-MM-DD) ->: ").strip())
-                # Checking if the date is in the future or not
-                if datetime.now().date() < self.date:
-                    print(f"Enter a date that isn't in the future(Todays date: {datetime.now().date()})")
-                else:
-                    break
+                expense_id = int(input("Enter the ID ->: "))
+                if 0 < expense_id <= len(storage):
+                    return expense_id
+                print('Invalid ID.')
             except ValueError:
-                print('Invalid date parameters therefore we will start over')
-        # Check if the expense information exists 
-        if not any(self.expense == expense_info["Expense"] and self.category == expense_info["Category"] and self.date == expense_info["Date"] for expense_info in self.expenses):
-            print("\nNo such expense information found")
-        else:
-            # Looping through each expense information
-            for expense_info in self.expenses:
-                if expense_info["Expense"] == self.expense and expense_info["Category"] == self.category and expense_info["Date"] == self.date:
-                    self.option = input(f"Enter the attribute of {self.expense} that you would like to edit(Enter N for Name, C for Category, A for Amount, P for Price, D for Date) ->: ").upper().strip()
-                    if self.option == 'N':
-                        # Asking for the expense while checking if its valid or not
-                        while True:
-                            self.expense = input(f"Enter the new version of {expense_info['Expense']} ->: ").capitalize()
-                            if not self.expense:
-                                print("Enter a valid expense")
-                            elif expense_info["Expense"] == self.expense:
-                                print("\nThe expense name is already the same")
-                                break
-                            else:
-                                print(f"\nThe expense {expense_info['Expense']} has been edited into {self.expense}")
-                                expense_info["Expense"] = self.expense
-                                break
-                        break
-                    elif self.option == "C":
-                        # Asking for the category while checking if its valid or not
-                        while True:
-                            self.category = input(f"Enter the new category of {self.expense}(Food, Transportation, etc.) ->: ").capitalize()
-                            if not self.category:
-                                print("Enter a valid category")
-                            elif expense_info["Category"] == self.category:
-                                print("\nThe category name is already the same")
-                                break
-                            else:
-                                print(f"\nThe expense {expense_info['Expense']}'s category {expense_info['Category']} has been edited into {self.category}")
-                                expense_info["Category"] = self.category
-                                break
-                        break
-                    elif self.option == 'A':
-                        # Setting the total price to the original singular price to do the calculations after the new input
-                        self.price = expense_info["Price"] / expense_info["Amount"]
-                        # Asking for the new amount while checking if its valid or not
-                        while True:
-                            try:
-                                self.amount = int(input(f"Enter the new amount of {self.expense} you have bought ->: "))
-                                if self.amount <= 0:
-                                    print("Enter a valid amount that is bigger than 0")
-                                elif expense_info["Amount"] == self.amount:
-                                    print("\nThe amount is already the same")
-                                    break
-                                else:
-                                    print(f"\nThe amount of {self.expense}s bought has been edited from {expense_info['Amount']} into {self.amount} alongside its total price")
-                                    expense_info["Amount"] = self.amount
-                                    expense_info["Price"] = self.price*expense_info["Amount"]
-                                    break
-                            except ValueError:
-                                print("Invalid amount")
-                        break
-                    elif self.option == "P":
-                        # Asking for the new singular price while checking if its valid or not
-                        while True:
-                            try:
-                                self.price = float(input(f"Enter the new price of one {self.expense} ->: "))
-                                if self.price <= 0:
-                                    print("Enter a valid price")
-                                elif self.price == expense_info["Price"] / expense_info["Amount"]:
-                                    print("\nThe singular price is already the same")
-                                    break
-                                else:
-                                    print(f"\nThe total price of {self.expense} has been edited from {expense_info['Price']:.2f} into {expense_info['Amount']*self.price:.2f}")
-                                    expense_info["Price"] = expense_info["Amount"]*self.price
-                                    break
-                            except ValueError:
-                                print("Invalid price")
-                        break
-                    elif self.option == "D":
-                        # Asking for the date while checking if its valid or not
-                        while True:
-                            try:
-                                self.date = date.fromisoformat(input(f"Enter the date of when {self.expense} was bought in this format(YYYY-MM-DD) ->: ").strip())
-                                if self.date == expense_info["Date"]:
-                                    print("\nThe date is already the same")
-                                    break
-                                elif datetime.now().date() < self.date:
-                                    print(f"Enter a date that isn't in the future(Todays date: {datetime.now().date()})")
-                                else:
-                                    print(f"\nThe date of the expense {self.expense} has been edited from {expense_info['Date']} into {self.date}")
-                                    expense_info["Date"] = self.date
-                                    break
-                            except ValueError:
-                                print("Invalid date parameters therefore we will start over")
-                        break
-                    else:
-                        print("\nInvalid option")
-                else:
+                print("Enter a valid ID.")
+    # The function that asks the user what they want to edit
+    def edit_attribute_input(self) -> str:
+        print("\nDISCLAIMER: EDITING THE PRICE DOESN'T CHANGE THE INDIVIDUAL PRICE BUT CHANGES THE TOTAL PRICE\n")
+        while True:
+            user_input = input(f"Enter the attribute that you would like to change(Expense, Price, Amount, Date, Category) ->: ").capitalize().strip()
+            if user_input in ("Expense", "Category", "Date", "Price", "Amount"):
+                return user_input
+            print("Enter a valid option.(Options: Expense, Price, Amount, Date, Category)")
+    # The function that checks if the user really wants to clear the entire expenses list
+    def clear_expenses_input(self) -> str:
+        while True:
+            user_input = input("Are you sure you want to clear the entire expenses?(y/n) ->: ").lower().strip()
+            if user_input in ("y", "n"):
+                return user_input
+            print('Enter a valid option.(Options: y, n)')
+    # The function that displays the options
+    def display_options(self):
+        print("""
+1. Add an expense\n2. View expenses\n3. Delete an expense\n4. Clear all expenses\n5. Edit an expense\n6. View expenses according to a specific category\n7. View expenses according to a specific date\n8. Search for an expense\n9. View statistics\n10. Exit
+        """)
+    # The function that runs the program
+    def run_program(self):
+        print("--- EXPENSE TRACKER ---")
+        self.expense_tracker.expenses = self.data.read_file()
+        while True:
+            self.display_options()
+            option = input("Enter your option(1-10) ->: ").strip()
+            if option == '1':
+                self.expense_tracker.add_expense(self.ask_input)
+            elif option == '2':
+                self.expense_tracker.display_expenses(None, True)
+            elif option == '3':
+                self.expense_tracker.delete_expense(self.id_input)
+            elif option == '4':
+                self.expense_tracker.clear_expenses(self.clear_expenses_input)
+            elif option == '5':
+                self.expense_tracker.edit_expense(self.id_input, self.edit_attribute_input, self.ask_input, "new version")
+            elif option == '6':
+                category = self.ask_input("category to display the expenses")
+                if all(category != expense_info["Category"] for expense_info in self.expense_tracker.expenses):
+                    print("\nNo such category found.")
                     continue
-    # Creating the function that displays specific expenses
-    def search_expense(self):
-        # Asking for the expense while checking if its valid or found
-        while True:
-            self.expense = input("Enter the expense that you would like to search ->: ").capitalize()
-            if not self.expense:
-                print("Enter a valid expense")
-            elif all(self.expense != expense_info["Expense"] for expense_info in self.expenses):
-                print("\nNo such expense found")
-                break
-            else:
-                print(f"\nExpenses with the name {self.expense}: ")
-                # Looping through each expense information
-                for expense_info in self.expenses:
-                    if expense_info["Expense"] == self.expense:
-                        print()
-                        # Looping through the keys and values
-                        for expense_info_key, expense_info_value in expense_info.items():
-                            if expense_info_key == "Price":
-                                print(f"{expense_info_key} -> {expense_info_value:.2f}")
-                            else:
-                                print(f"{expense_info_key} -> {expense_info_value}")
-                    else:
-                        continue
-            break
-    # Creating the function that displays the expenses according to a specific category
-    def display_expenses_category(self):
-        # Asking for the category while checking if its valid or found
-        while True:
-            self.category = input("Enter the category(Food, Transportation, etc.) ->: ").capitalize()
-            if not self.category:
-                print("Enter a valid category")
-            elif all(self.category != expense_info["Category"] for expense_info in self.expenses):
-                print("\nNo such category found")
-                break
-            else:
-                print(f"Expenses({self.category}): ")
-                # Looping through each expense information
-                for expense_info in self.expenses:
-                    if expense_info["Category"] == self.category:
-                        print()
-                        # Looping through the keys and values
-                        for expense_info_key, expense_info_value in expense_info.items():
-                            if expense_info_key == "Price":
-                                print(f"{expense_info_key} -> {expense_info_value:.2f}")
-                            else:
-                                print(f"{expense_info_key} -> {expense_info_value}")
-                    else:
-                        continue
-            break
-    # Creating the function that displays the expenses according to a specific date
-    def display_expenses_date(self):
-        # Asking for the date while checking if its valid or not
-        while True:
-            try:
-                self.date = date.fromisoformat(input(f"Enter the date in this format(YYYY-MM-DD) ->: ").strip())
-                if all(self.date != expense_info["Date"] for expense_info in self.expenses):
-                    print("\nNo such date found")
-                else:
-                    print(f"\nExpenses(Date: {self.date})")
-                    # Looping through each expense information
-                    for expense_info in self.expenses:
-                        if expense_info["Date"] == self.date:
-                            print()
-                            # Looping through the keys and values
-                            for expense_info_key, expense_info_value in expense_info.items():
-                                if expense_info_key == "Price":
-                                    print(f"{expense_info_key} -> {expense_info_value:.2f}")
-                                else:
-                                    print(f"{expense_info_key} -> {expense_info_value}")
-                        else:
-                            continue
-                    break
-                break
-            except ValueError:
-                print("Invalid date parameters therefore we will start over")
-    # Creating the function that displays the total price
-    def display_total_price(self):
-        # Check if expense tracker data exists
-        if not self.expenses:
-            print("\nNo data found to proceed")
-        else:
-            print(f"\nTotal price spent: \n{sum(expense_info['Price'] for expense_info in self.expenses):.2f}")
-    # Creating the function that displays the total price according to a specific category
-    def display_total_price_category(self):
-        # Asking for the category while checking if its valid or not
-        while True:
-            self.category = input("Enter the category to display how much was spent(Food, Transportation, etc.) ->: ").capitalize()
-            if not self.category:
-                print("Enter a valid category")
-            elif all(self.category != expense_info["Category"] for expense_info in self.expenses):
-                print("\nNo such category found")
-                break
-            else:
-                print(f"\nTotal price spent({self.category}): {sum(expense_info['Price'] for expense_info in self.expenses if expense_info['Category'] == self.category):.2f}")
-                break
-    # Creating the function that displays the average expense price
-    def display_average_price(self):
-        # Check if expense tracker data exists
-        if not self.expenses:
-            print("\nNo data found to proceed")
-        else:
-            print(f"\nAverage price spent: {mean(expense_info['Price'] for expense_info in self.expenses):.2f}")
-    # Creating the function that displays the most expensive expense price
-    def display_most_expensive_price(self):
-        # Check if expense tracker data exists
-        if not self.expenses:
-            print("\nNo data found to proceed")
-        else:
-            # Looping through each expense information
-            for expense_info in self.expenses:
-                if expense_info['Price'] == max(expense_info['Price'] for expense_info in self.expenses):
-                    print(f"\nThe most expensive expense and it's price:\n{expense_info['Expense']}: {expense_info['Price']:.2f}")
-                else:
-                    continue
-    # Creating the function that displays the cheapest expense price
-    def display_cheapest_price(self):
-        # Check if expense tracker data exists
-        if not self.expenses:
-            print("\nNo data found to proceed") 
-        else:
-            # Looping through each expense information
-            for expense_info in self.expenses:
-                if expense_info['Price'] == min(expense_info['Price'] for expense_info in self.expenses):
-                    print(f"\nThe cheapest expense and it's price:\n{expense_info['Expense']}: {expense_info['Price']:.2f}")
-                else:
-                    continue
-    # Creating the function that sets a budget and checks if its eligible with the expenses
-    def set_budget_and_check(self):
-        # Check if expense tracker data exists
-        if not self.expenses:
-            print("\nNo data found to proceed")
-        else:
-            # Asking for the budget while checking if its valid or not
-            while True:
+                self.expense_tracker.display_expenses("Category", category)
+            elif option == '7':
                 try:
-                    self.budget = float(input("Enter the budget ->: "))
-                    if self.budget <= 0:
-                        print("Enter a valid budget that is bigger than 0")
-                    elif self.budget < sum(expense_info['Price'] for expense_info in self.expenses):
-                        print("\nThe budget is not enough you can enter a new one")
-                        # Looping through each expense information
-                        for expense_info in self.expenses:
-                            if sum(expense_info['Price'] for expense_info in self.expenses) - expense_info["Price"] < self.budget:
-                                print(f'or you can remove {expense_info["Expense"]} which will be enough for your budget and have {self.budget - (sum(expense_info["Price"] for expense_info in self.expenses) - expense_info["Price"]):.2f} leftover')
-                            elif sum(expense_info['Price'] for expense_info in self.expenses) - expense_info["Price"] == self.budget:
-                                print(f'or you can remove {expense_info["Expense"]} but have nothing leftover')
-                            else:
-                                continue
-                        break
-                    elif self.budget == sum(expense_info['Price'] for expense_info in self.expenses):
-                        print("\nThe budget is enough but you won't have any change leftover")
-                        break
-                    else:
-                        print(f"\nThe budget is enough and you will have {self.budget - sum(expense_info['Price'] for expense_info in self.expenses):.2f} leftover")
-                        break
-                except ValueError:
-                    print("Invalid budget")
-# Creating the class that is responsible for the CLI commands while inheriting most of the variables from the ExpenseTracker class to avoid AttributeError's
-class ExpenseTrackerCLI(ExpenseTracker):
-    # Creating the function that displays the options and asks the user what they want
-    def display_menu(self):
-        ExpenseTrackerData.read_data(self)
-        print("--- Expense Tracker ---")
-        while True:
-            print("\n1. Add a new expense")
-            print("2. View all expenses")
-            print("3. Delete an expense")
-            print("4. Clear all expenses")
-            print("5. Edit an expense's attribute(Name/Category/Price/Amount/Date)")
-            print("6. Search a specific expense")
-            print("7. View expenses according to a specific category")
-            print("8. View expenses according to a specific date")
-            print("9. View total price spent")
-            print("10. View total price spent according to a specific category")
-            print("11. View average price")
-            print("12. View the most expensive expense")
-            print("13. View the cheapest expense")
-            print("14. Set a budget and check")
-            print("15. Exit")
-            self.option = input("Enter your option(1-15) ->: ")
-            if self.option == '1':
-                ExpenseTracker.add_new_expense(self)
-            elif self.option == '2':
-                ExpenseTracker.display_all_expenses(self)
-            elif self.option == '3':
-                ExpenseTracker.delete_expense(self)
-            elif self.option == '4':
-                ExpenseTracker.clear_all_expenses(self)
-            elif self.option == '5':
-                ExpenseTracker.edit_expense_attribute(self)
-            elif self.option == '6':
-                ExpenseTracker.search_expense(self)
-            elif self.option == '7':
-                ExpenseTracker.display_expenses_category(self)
-            elif self.option == '8':
-                ExpenseTracker.display_expenses_date(self)
-            elif self.option == '9':
-                ExpenseTracker.display_total_price(self)
-            elif self.option == '10':
-                ExpenseTracker.display_total_price_category(self)
-            elif self.option == '11':
-                ExpenseTracker.display_average_price(self)
-            elif self.option == '12':
-                ExpenseTracker.display_most_expensive_price(self)
-            elif self.option == '13':
-                ExpenseTracker.display_cheapest_price(self)
-            elif self.option == '14':
-                ExpenseTracker.set_budget_and_check(self)
-            elif self.option == '15':
+                    date_input = date.fromisoformat(self.ask_input("date to display the expenses"))
+                    if date_input > date.today():
+                        print(f"\nEnter a date that isn't after the date {date.today()}")
+                        continue
+                    if all(date_input != expense_info["Date"] for expense_info in self.expense_tracker.expenses):
+                        print(f"\nNo such expense found with the date {date_input}.")
+                        continue
+                    self.expense_tracker.display_expenses("Date", date_input)
+                except ValueError as e:
+                    print(f'{e}')
+            elif option == '8':
+                self.expense_tracker.search_expenses(self.ask_input)
+            elif option == '9':
+                self.expense_tracker.display_statistics()
+            elif option == '10':
                 print("Ok wait a moment...")
                 sleep(1.5)
-                print('Saving data...')
-                ExpenseTrackerData.write_data(self)
+                print("Saving data...")
+                self.data.write_file(self.expense_tracker.expenses)
                 sleep(2)
-                print('Exiting...')
+                print("Exiting...")
                 sleep(1.5)
                 break
             else:
-                print("\nInvalid option")
-# Creating the class that is responsible for the data saving
-class ExpenseTrackerData:
-    # Initializing one variable thats gonna be used in this class
-    def __init__(self):
-        self.expenses = []
-    # Creating the function that reads the data from the file and writes it into the program
-    def read_data(self):
-        # Check if the file exists
-        if Path("expense_tracker.json").is_file():
-            with open("expense_tracker.json", "r") as f:
-                # Loading the data before converting the strings into datetime objects
-                self.expenses = json.load(f)
-                # Looping through each expense information
-                for expense_info in self.expenses:
-                    # Looping through the keys and values
-                    for expense_info_key, expense_info_value in expense_info.items():
-                        if expense_info_key == "Date":
-                            expense_info[expense_info_key] = date.fromisoformat(expense_info_value)
-    # Creating the function that reads the data from the program and writes it into the file
-    def write_data(self):
-        with open("expense_tracker.json", "w") as f:
-            # Looping through each expense information
-            for expense_info in self.expenses:
-                # Looping through the keys and values
-                for expense_info_key, expense_info_value in expense_info.items():
-                    if expense_info_key == "Date":
-                        expense_info[expense_info_key] = date.isoformat(expense_info_value)
-            # Saving the data after converting the datetime objects into strings to avoid TypeError's
-            json.dump(self.expenses, f)
-expense_tracker = ExpenseTrackerCLI().display_menu()
+                print("\nInvalid option.")
+# The class that is repsonsible for the JSOn data saving/parsing
+class ExpenseTrackerJSON:
+    # The function that validates the JSON structure of a file
+    def validate_json(self, storage: list) -> bool:
+        if type(storage) is not list:
+            return False
+        for index, expense_info in enumerate(storage, start=1):
+            if type(expense_info) is not dict:
+                return False
+            if set(expense_info.keys()) != {"ID", "Expense", "Price", "Amount", "Category", "Date"}:
+                return False
+            if type(expense_info["ID"]) is not int or type(expense_info["Expense"]) is not str or type(expense_info["Price"]) not in (float, int) or not isfinite(expense_info["Price"]) or type(expense_info["Amount"]) is not int or type(expense_info["Category"]) is not str or type(expense_info["Date"]) is not str or expense_info["Price"] <= 0 or expense_info["Amount"] <= 0:
+                return False
+            if expense_info["ID"] != index:
+                return False
+        return True
+    # The function that reads the data from the file and loads it into the program
+    def read_file(self) -> list:
+        try:
+            with open("expense_tracker.json", encoding="utf-8") as f:
+                data = json.load(f)
+                if self.validate_json(data):
+                    for expense_info in data:
+                        expense_date = expense_info["Date"]
+                        expense_info["Date"] = date.fromisoformat(expense_date)
+                    return data
+                return []
+        except FileNotFoundError:
+            return []
+        except OSError as e:
+            print(f"\n{e}")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"\n{e}\nIt seems that the file has corrupted JSON data, this could occur if the creator of this program has updated the structure of the JSON parsing.\nTherefore the expenses will be reset.\nWe thank you for your understanding.\n")
+            return []
+        except ValueError as e:
+            print(f"{e}")
+            return []
+    # The function that retireves the data from the program and writes it into the file
+    def write_file(self, storage: list):
+        try:
+            with open("expense_tracker.json", "w", encoding="utf-8") as f:
+                for expense_info in storage:
+                    expense_date = expense_info["Date"]
+                    expense_info["Date"] = date.isoformat(expense_date)
+                json.dump(storage, f, ensure_ascii=False, sort_keys=True, indent=4, allow_nan=False)
+        except OSError as e:
+            print(f"\n{e}")
+ExpenseTrackerCLI().run_program()
