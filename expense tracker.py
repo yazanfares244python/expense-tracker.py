@@ -253,8 +253,7 @@ class ExpenseTrackerJSON:
                 data = json.load(f)
                 if self.validate_json(data):
                     for expense_info in data:
-                        expense_date = expense_info["Date"]
-                        expense_info["Date"] = date.fromisoformat(expense_date)
+                        expense_info["Date"] = date.fromisoformat(expense_info["Date"])
                     return data
                 return []
         except FileNotFoundError:
@@ -273,8 +272,7 @@ class ExpenseTrackerJSON:
         try:
             with open("expense_tracker.json", "w", encoding="utf-8") as f:
                 for expense_info in storage:
-                    expense_date = expense_info["Date"]
-                    expense_info["Date"] = date.isoformat(expense_date)
+                    expense_info["Date"] = date.isoformat(expense_info["Date"])
                 json.dump(storage, f, ensure_ascii=False, sort_keys=True, indent=4, allow_nan=False)
         except OSError as e:
             print(f"\n{e}")
